@@ -1,4 +1,8 @@
 Roadmap: AI Calendar App Development
+---
+lowkey i stopped using this pretty quickly cause it just made me stress about starting rather than starting. 
+Need to delete but it might come in handy later if i dont have an idea of what to use for something or seomthing who knows
+---
 
 🧠 Concept:
 An AI-assisted calendar app that intelligently schedules tasks, analyzes habits, reschedules missed events, and optionally runs locally for privacy.
