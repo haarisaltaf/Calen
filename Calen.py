@@ -1,6 +1,6 @@
 import sys
 import sqlite3
-# from datetime import datetime
+from datetime import datetime
 from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
@@ -18,13 +18,13 @@ from PyQt6.QtCore import Qt
 
 class DayWidget(QDockWidget):
     """
-    GUI that can pop in and out from main window to show:w
+    GUI that can pop in and out from main window to show
     each day and its events.
     Inherited: QDockWidget
     Parameters: the current Date object
     """
 
-    def __init__(self, selectedDate):
+    def __init__(self, selectedDate, dayEvents=None):
         super(DayWidget, self).__init__()
         # Dock can appear on left or right side.
         self.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea |
@@ -33,12 +33,16 @@ class DayWidget(QDockWidget):
         self.label = QLabel(f"{selectedDate.toString()}")
         self.container = QWidget()
         self.vLayout = QVBoxLayout()
+        if dayEvents is not None:
+            self.dayEvents = QLabel(dayEvents)
+            self.vLayout.addWidget(self.dayEvents)
+
         self.vLayout.addWidget(self.label)
         self.container.setLayout(self.vLayout)
         self.setWidget(self.container)
 
 
-# TODO: implement events and appointments
+# TODO: Integrate into Calen -> Display events
 class Events():
     """
     Events class to create an SQLite Database (events.db).
@@ -47,10 +51,12 @@ class Events():
 
     def __init__(self):
         """
-        Handles connecting to events.db and 
-        inital creation of table and 
+        Handles connecting to events.db and
+        inital creation of table and
         creates cursor to handle SQL execution.
         """
+        self.now = datetime.now()
+        self.dateTimeNow = self.now.strftime("%d/%m/%Y, %H:%M:%S")
         self.con = sqlite3.connect("events.db")  # connects to database
         self.cur = self.con.cursor()  # allows SQL executions
         if self.checkTables() is None:
@@ -64,15 +70,15 @@ class Events():
         Creates the inital table with required headers.
         """
         print('Creating tables')
-        self.cur.execute("CREATE TABLE events(name, date, rigidity, location)")
+        self.cur.execute("CREATE TABLE Events(name, date, rigidity, location)")
 
     def insertEvent(self, eventName="test", eventDate="testDate", rigidity="testRigidity", location="testLocation"):
         """
         Inserts event into Events table. Uses passed through Name,
         Date, Rigidity, Location.
         """
-        self.cur.execute(f"INSERT INTO Events VALUES (f{eventName}, f{
-                         eventDate}, f{rigidity}, f{location})")
+        self.cur.execute(f"INSERT INTO Events VALUES ({eventName}, {
+                         eventDate}, {rigidity}, {location})")
 
     def checkTables(self):
         """
@@ -80,6 +86,12 @@ class Events():
         """
         self.tableNames = self.cur.execute("SELECT * FROM sqlite_master")
         return self.tableNames.fetchone()
+
+    def deleteEvent(self, eventName="test"):
+        """
+        Deletes an event based on the passed through parameter.
+        """
+        self.cur.execute(f"DELETE FROM Events WHERE name = {eventName}")
 
 
 class CalenWidget(QCalendarWidget):
@@ -111,7 +123,6 @@ class CalenWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    eventsTest = Events()
     app = QApplication(sys.argv)
     window = CalenWindow()
     window.show()
