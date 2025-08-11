@@ -1,5 +1,6 @@
 import sys
-from datetime import datetime
+import sqlite3
+# from datetime import datetime
 from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
@@ -11,12 +12,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-# QMainWindow for main background with QCalendarWidget class to repeatedly create QDockWidget objects for each day.
+# QMainWindow for main background with QCalendarWidget class
+# to repeatedly create QDockWidget objects for each day.
 
 
 class DayWidget(QDockWidget):
     """
-    GUI that can pop in and out from main window to show each day and its events.
+    GUI that can pop in and out from main window to show:w
+    each day and its events.
     Inherited: QDockWidget
     Parameters: the current Date object
     """
@@ -35,9 +38,48 @@ class DayWidget(QDockWidget):
         self.setWidget(self.container)
 
 
-class Appointments():
+# TODO: implement events and appointments
+class Events():
+    """
+    Events class to create an SQLite Database (events.db).
+    Handles querying and creation of database.
+    """
+
     def __init__(self):
-        return None
+        """
+        Handles connecting to events.db and 
+        inital creation of table and 
+        creates cursor to handle SQL execution.
+        """
+        self.con = sqlite3.connect("events.db")  # connects to database
+        self.cur = self.con.cursor()  # allows SQL executions
+        if self.checkTables() is None:
+            print("Attempting creation")
+            self.initialCreation()
+        print(self.checkTables())
+
+    def initialCreation(self):
+        """
+        Runs if self.checkTables returns an empty tuple ie no tables created.
+        Creates the inital table with required headers.
+        """
+        print('Creating tables')
+        self.cur.execute("CREATE TABLE events(name, date, rigidity, location)")
+
+    def insertEvent(self, eventName="test", eventDate="testDate", rigidity="testRigidity", location="testLocation"):
+        """
+        Inserts event into Events table. Uses passed through Name,
+        Date, Rigidity, Location.
+        """
+        self.cur.execute(f"INSERT INTO Events VALUES (f{eventName}, f{
+                         eventDate}, f{rigidity}, f{location})")
+
+    def checkTables(self):
+        """
+        Grabs table names from sqlite_master, returned using .fetchone()
+        """
+        self.tableNames = self.cur.execute("SELECT * FROM sqlite_master")
+        return self.tableNames.fetchone()
 
 
 class CalenWidget(QCalendarWidget):
@@ -63,12 +105,13 @@ class CalenWindow(QMainWindow):
         self.resize(800, 600)
 
         # Defining needed Classes/ Methods
-        self.appointments = Appointments()
+        self.events = Events()
         self.calendar = CalenWidget()
         self.setCentralWidget(self.calendar)
 
 
 if __name__ == "__main__":
+    eventsTest = Events()
     app = QApplication(sys.argv)
     window = CalenWindow()
     window.show()
