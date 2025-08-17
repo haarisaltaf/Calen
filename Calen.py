@@ -2,6 +2,12 @@ import sys
 import sqlite3
 from datetime import datetime
 from PyQt6.QtWidgets import (
+    QMessageBox,
+    QComboBox,
+    QDateEdit,
+    QDialog,
+    QLineEdit,
+    QTextEdit,
     QPushButton,
     QToolBar,
     QVBoxLayout,
@@ -12,7 +18,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QDate
 
 # QMainWindow for main background with QCalendarWidget class
 # to repeatedly create QDockWidget objects for each day.
@@ -44,7 +50,6 @@ class DayWidget(QDockWidget):
         self.setWidget(self.container)
 
 
-# TODO: Integrate into Calen -> Display events
 class Events():
     """
     Events class to create an SQLite Database (events.db).
@@ -73,7 +78,7 @@ class Events():
         """
         print('Creating tables')
         self.cur.execute(
-            "CREATE TABLE Events (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, date TEXT NOT NULL, rigidity TEXT, location TEXT);")
+            "CREATE TABLE Events (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, date TEXT NOT NULL, rigidity INTEGER, location TEXT);")
 
     def insertEvent(self, eventName="test", eventDate="testDate", rigidity="testRigidity", location="testLocation"):
         """
@@ -108,6 +113,48 @@ class Events():
         return rows
 
 
+class AddEventGUI(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Add Event")
+
+        self.layout = QVBoxLayout()
+
+        self.layout.addWidget(QLabel("Event Name:"))
+        self.eventNameInput = QLineEdit()
+        self.layout.addWidget(self.eventNameInput)
+
+        self.layout.addWidget(QLabel("Date of Event:"))
+        self.eventDateInput = QDateEdit()
+        self.eventDateInput.setDate(QDate.currentDate())
+        self.eventDateInput.setCalendarPopup(True)
+        self.layout.addWidget(self.eventDateInput)
+
+        self.layout.addWidget(QLabel("Rigidity:"))
+        self.eventRigidityInput = QComboBox()
+        self.eventRigidityInput.addItems(["Rigid", "Dynamic"])
+        self.layout.addWidget(self.eventRigidityInput)
+
+        self.layout.addWidget(QLabel("Location:"))
+        self.eventLocationInput = QLineEdit()
+        self.layout.addWidget(self.eventLocationInput)
+
+        self.saveButton = QPushButton("Save")
+        self.layout.addWidget(self.saveButton)
+
+        self.setLayout(self.layout)
+
+        self.saveButton.clicked.connect(self.accept)
+
+    def getAllData(self):
+        return {
+            "title": self.eventNameInput.text(),
+            "date": self.eventDateInput.date().toString("dd-MM-yyyy"),
+            "rigidity": self.eventRigidityInput.currentText(),
+            "location": self.eventLocationInput.text()
+        }
+
+
 class CalenWidget(QCalendarWidget):
     def __init__(self, parent=None):
         super(CalenWidget, self).__init__()
@@ -130,15 +177,34 @@ class CalenWindow(QMainWindow):
         self.setWindowTitle("Calen")
         self.resize(800, 600)
 
+        # adding toolbar
+        # TODO: have gui to ask for needed details to add to events database
         self.toolbar = QToolBar()
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
+
         self.addEventButton = QPushButton("Add Event")
         self.toolbar.addWidget(self.addEventButton)
+        self.addEventButton.clicked.connect(self.openAddEventGUI)
+
+        self.removeEventButton = QPushButton("Remove Event")
+        self.toolbar.addWidget(self.removeEventButton)
 
         # Initalising events then adding calendar
         self.events = Events()
         self.calendar = CalenWidget()
         self.setCentralWidget(self.calendar)
+
+    def openAddEventGUI(self):
+        self.addEventWindow = AddEventGUI()
+        if self.addEventWindow.exec():
+            # checks if the user has exited via save.
+            self.newEventData = self.addEventWindow.getAllData()
+            QMessageBox.information(self, "Event Added", f"Title: {self.newEventData['title']}\n"
+                                    f"Date: {self.newEventData['date']}\n"
+                                    f"Type: {self.newEventData['rigidity']}\n"
+                                    f"Desc: {self.newEventData['location']}")
+        else:
+            QMessageBox.information(self, "Event Not Saved")
 
 
 if __name__ == "__main__":
