@@ -4,10 +4,9 @@ from datetime import datetime
 from PyQt6.QtWidgets import (
     QMessageBox,
     QComboBox,
-    QDateEdit,
+    QDateTimeEdit,
     QDialog,
     QLineEdit,
-    QTextEdit,
     QPushButton,
     QToolBar,
     QVBoxLayout,
@@ -18,7 +17,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow
 )
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import Qt, QDateTime
 
 # QMainWindow for main background with QCalendarWidget class
 # to repeatedly create QDockWidget objects for each day.
@@ -108,8 +107,10 @@ class Events():
     def fetchAllEvents(self):
         self.cur.execute("SELECT * FROM Events")
         rows = self.cur.fetchall()
+        print("fetchAllEvents:")
         for row in rows:
             print(row)  # each row is a tuple: (id, name, date, rigidity, location)
+        print("")
         return rows
 
 
@@ -125,8 +126,8 @@ class AddEventGUI(QDialog):
         self.layout.addWidget(self.eventNameInput)
 
         self.layout.addWidget(QLabel("Date of Event:"))
-        self.eventDateInput = QDateEdit()
-        self.eventDateInput.setDate(QDate.currentDate())
+        self.eventDateInput = QDateTimeEdit()
+        self.eventDateInput.setDateTime(QDateTime.currentDateTime())
         self.eventDateInput.setCalendarPopup(True)
         self.layout.addWidget(self.eventDateInput)
 
@@ -148,8 +149,8 @@ class AddEventGUI(QDialog):
 
     def getAllData(self):
         return {
-            "title": self.eventNameInput.text(),
-            "date": self.eventDateInput.date().toString("dd-MM-yyyy"),
+            "name": self.eventNameInput.text(),
+            "date": self.eventDateInput.dateTime().toString("dd-MM-yyyy HH:mm"),
             "rigidity": self.eventRigidityInput.currentText(),
             "location": self.eventLocationInput.text()
         }
@@ -178,7 +179,6 @@ class CalenWindow(QMainWindow):
         self.resize(800, 600)
 
         # adding toolbar
-        # TODO: have gui to ask for needed details to add to events database
         self.toolbar = QToolBar()
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
 
@@ -187,6 +187,7 @@ class CalenWindow(QMainWindow):
         self.addEventButton.clicked.connect(self.openAddEventGUI)
 
         self.removeEventButton = QPushButton("Remove Event")
+        # TODO: implement removing events
         self.toolbar.addWidget(self.removeEventButton)
 
         # Initalising events then adding calendar
@@ -199,10 +200,21 @@ class CalenWindow(QMainWindow):
         if self.addEventWindow.exec():
             # checks if the user has exited via save.
             self.newEventData = self.addEventWindow.getAllData()
-            QMessageBox.information(self, "Event Added", f"Title: {self.newEventData['title']}\n"
+            QMessageBox.information(self, "Event Added",
+                                    f"Name: {self.newEventData['name']}\n"
                                     f"Date: {self.newEventData['date']}\n"
                                     f"Type: {self.newEventData['rigidity']}\n"
                                     f"Desc: {self.newEventData['location']}")
+            # piping the data into the database
+            conn = sqlite3.connect("events.db")
+            c = conn.cursor()
+            c.execute("INSERT INTO events (name, date, rigidity, location) VALUES (?, ?, ?, ?)",
+                      (self.newEventData['name'],
+                       self.newEventData['date'],
+                       self.newEventData['rigidity'],
+                       self.newEventData['location']))
+            conn.commit()
+            conn.close()
         else:
             QMessageBox.information(self, "Event Not Saved")
 
