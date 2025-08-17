@@ -2,6 +2,8 @@ import sys
 import sqlite3
 from datetime import datetime
 from PyQt6.QtWidgets import (
+    QPushButton,
+    QToolBar,
     QVBoxLayout,
     QWidget,
     QLabel,
@@ -128,7 +130,12 @@ class CalenWindow(QMainWindow):
         self.setWindowTitle("Calen")
         self.resize(800, 600)
 
-        # Defining needed Classes/ Methods
+        self.toolbar = QToolBar()
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
+        self.addEventButton = QPushButton("Add Event")
+        self.toolbar.addWidget(self.addEventButton)
+
+        # Initalising events then adding calendar
         self.events = Events()
         self.calendar = CalenWidget()
         self.setCentralWidget(self.calendar)
