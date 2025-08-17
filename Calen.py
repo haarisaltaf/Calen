@@ -59,10 +59,10 @@ class Events():
         self.dateTimeNow = self.now.strftime("%d/%m/%Y, %H:%M:%S")
         self.con = sqlite3.connect("events.db")  # connects to database
         self.cur = self.con.cursor()  # allows SQL executions
-        if self.checkTables() is None:
+        if self.fetchAllEvents() is None:
             print("Attempting creation")
             self.initialCreation()
-        print(self.checkTables())
+        print("CheckTables: ", self.checkTables())
 
     def initialCreation(self):
         """
@@ -70,28 +70,40 @@ class Events():
         Creates the inital table with required headers.
         """
         print('Creating tables')
-        self.cur.execute("CREATE TABLE Events(name, date, rigidity, location)")
+        self.cur.execute(
+            "CREATE TABLE Events (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, date TEXT NOT NULL, rigidity TEXT, location TEXT);")
 
     def insertEvent(self, eventName="test", eventDate="testDate", rigidity="testRigidity", location="testLocation"):
         """
         Inserts event into Events table. Uses passed through Name,
         Date, Rigidity, Location.
         """
-        self.cur.execute(f"INSERT INTO Events VALUES ({eventName}, {
-                         eventDate}, {rigidity}, {location})")
+
+        self.cur.execute(
+            "INSERT INTO Events (name, date, rigidity, location) VALUES (?, ?, ?, ?)",
+            (eventName, eventDate, rigidity, location)
+        )
+        self.con.commit()  # commit allows for the changes to persist after closure
 
     def checkTables(self):
         """
-        Grabs table names from sqlite_master, returned using .fetchone()
+        Grabs table names from sqlite_master, returned using .fetchall()
         """
-        self.tableNames = self.cur.execute("SELECT * FROM sqlite_master")
-        return self.tableNames.fetchone()
+        self.cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        print(self.cur.fetchall())
 
     def deleteEvent(self, eventName="test"):
         """
         Deletes an event based on the passed through parameter.
         """
         self.cur.execute(f"DELETE FROM Events WHERE name = {eventName}")
+
+    def fetchAllEvents(self):
+        self.cur.execute("SELECT * FROM Events")
+        rows = self.cur.fetchall()
+        for row in rows:
+            print(row)  # each row is a tuple: (id, name, date, rigidity, location)
+        return rows
 
 
 class CalenWidget(QCalendarWidget):
