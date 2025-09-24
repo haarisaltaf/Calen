@@ -42,11 +42,14 @@ class DayWidget(QDockWidget):
         self.vLayout = QVBoxLayout()
         if dayEvents is not None:
             self.dayEvents = QLabel(dayEvents)
+            # Adds the events as a label
             self.vLayout.addWidget(self.dayEvents)
 
         self.vLayout.addWidget(self.label)
         self.container.setLayout(self.vLayout)
         self.setWidget(self.container)
+
+        # TODO: Add events for that day to the widget -- grab events from database and add as a label to the widget
 
 
 class Events():
@@ -84,7 +87,6 @@ class Events():
         Inserts event into Events table. Uses passed through Name,
         Date, Rigidity, Location.
         """
-
         self.cur.execute(
             "INSERT INTO Events (name, date, rigidity, location) VALUES (?, ?, ?, ?)",
             (eventName, eventDate, rigidity, location)
@@ -112,6 +114,11 @@ class Events():
             print(row)  # each row is a tuple: (id, name, date, rigidity, location)
         print("")
         return rows
+
+    def fetchDayEvents(self, date):
+        self.cur.execute("SELECT * FROM Events WHERE date LIKE ?", date)
+        dayEvents = self.cur.fetchall()
+        return dayEvents
 
 
 class AddEventGUI(QDialog):
@@ -148,6 +155,10 @@ class AddEventGUI(QDialog):
         self.saveButton.clicked.connect(self.accept)
 
     def getAllData(self):
+        """
+        Grabs all the data for the new event added.
+        """
+
         return {
             "name": self.eventNameInput.text(),
             "date": self.eventDateInput.dateTime().toString("dd-MM-yyyy HH:mm"),
@@ -162,9 +173,22 @@ class CalenWidget(QCalendarWidget):
         self.clicked.connect(self.onClickedDate)
 
     def onClickedDate(self, date):
-        currentDay = DayWidget(date)
+        self.selectedDay = date.toString("dd-MM-yyyy")
+        # TODO: passthrough the selected day to events.fetch
+        print("date:", self.selectedDay)
+
+        # grabbing today's events and passing into day widget
+        conn = sqlite3.connect("events.db")
+        c = conn.cursor()
+        c.execute(
+            f"SELECT * FROM Events WHERE date LIKE \'%{self.selectedDay}%\'")
+        rows = c.fetchall()
+        conn.close()
+        print(rows)
+        currentDayDockWidget = DayWidget(date, str(rows))
+
         self.parent().addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
-                                    currentDay)
+                                    currentDayDockWidget)
 
 
 class CalenWindow(QMainWindow):
