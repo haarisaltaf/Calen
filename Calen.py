@@ -167,6 +167,19 @@ class AddEventGUI(QDialog):
         }
 
 
+class removeEventGUI(QDialog):
+    def __init__(self, currAppointments):
+        super().__init__()
+        self.setWindowTitle("Remove Event")
+
+        self.layout = QVBoxLayout()
+
+        self.layout.addWidget(QLabel("Select event to remove:"))
+        self.removeEventSelector = QComboBox()
+        self.removeEventSelector.addItems([str(currAppointments)])
+        self.layout.addWidget(self.removeEventSelector)
+
+
 class CalenWidget(QCalendarWidget):
     def __init__(self, parent=None):
         super(CalenWidget, self).__init__()
@@ -210,14 +223,16 @@ class CalenWindow(QMainWindow):
         self.toolbar.addWidget(self.addEventButton)
         self.addEventButton.clicked.connect(self.openAddEventGUI)
 
-        self.removeEventButton = QPushButton("Remove Event")
-        # TODO: implement removing events
-        self.toolbar.addWidget(self.removeEventButton)
-
         # Initalising events then adding calendar
         self.events = Events()
         self.calendar = CalenWidget()
         self.setCentralWidget(self.calendar)
+
+        self.removeEventButton = QPushButton("Remove Event")
+        # TODO: implement removing events
+        self.toolbar.addWidget(self.removeEventButton)
+        self.removeEventButton.clicked.connect(
+            self.openRemoveEventGUI(self.events.fetchAllEvents))
 
     def openAddEventGUI(self):
         self.addEventWindow = AddEventGUI()
@@ -241,6 +256,9 @@ class CalenWindow(QMainWindow):
             conn.close()
         else:
             QMessageBox.information(self, "Event Not Saved")
+
+    def openRemoveEventGUI(self, currAppointments):
+        self.removeEventGUI = removeEventGUI(currAppointments)
 
 
 if __name__ == "__main__":
