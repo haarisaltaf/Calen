@@ -49,8 +49,6 @@ class DayWidget(QDockWidget):
         self.container.setLayout(self.vLayout)
         self.setWidget(self.container)
 
-        # TODO: Add events for that day to the widget -- grab events from database and add as a label to the widget
-
 
 class Events():
     """
@@ -99,6 +97,7 @@ class Events():
         """
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
         print(self.cur.fetchall())
+        return self.cur.fetchall()
 
     def deleteEvent(self, eventName="test"):
         """
@@ -109,10 +108,11 @@ class Events():
     def fetchAllEvents(self):
         self.cur.execute("SELECT * FROM Events")
         rows = self.cur.fetchall()
-        print("fetchAllEvents:")
-        for row in rows:
-            print(row)  # each row is a tuple: (id, name, date, rigidity, location)
-        print("")
+        # print("fetchAllEvents:")
+        # for row in rows:
+        #     # each row is a tuple: (id, name, date, rigidity, location)
+        #     print("printing fetchAllEvents: ", row)
+        # print("")
         return rows
 
     def fetchDayEvents(self, date):
@@ -122,6 +122,10 @@ class Events():
 
 
 class AddEventGUI(QDialog):
+    """
+    GUI for when selecting to create a new event in the calendar.
+    """
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Add Event")
@@ -167,17 +171,39 @@ class AddEventGUI(QDialog):
         }
 
 
+def formatGetAllEvents(allEvents):
+    """
+    Formats all events based on the sqlite exection (SELECT * FROM events)
+    FOR QComboBox.
+    See usage in removeEventGUI class if needed.
+    """
+    # TODO: this fucntion -- Formatting
+    print(allEvents)
+
+
 class removeEventGUI(QDialog):
-    def __init__(self, currAppointments):
+    def __init__(self):
         super().__init__()
+
         self.setWindowTitle("Remove Event")
 
         self.layout = QVBoxLayout()
 
+        # get all items and list them
+        self.con = sqlite3.connect("events.db")  # connects to database
+        self.cur = self.con.cursor()  # allows SQL executions
+        self.cur.execute("SELECT * FROM events")
+        self.allEvents = self.cur.fetchall()
+        self.formattedEvents = formatGetAllEvents(self.allEvents)
+
         self.layout.addWidget(QLabel("Select event to remove:"))
         self.removeEventSelector = QComboBox()
-        self.removeEventSelector.addItems([str(currAppointments)])
+        # self.removeEventSelector.addItems(self.allEvents)
         self.layout.addWidget(self.removeEventSelector)
+
+    def getToBeRemovedAppointment(self):
+        self.currentSelection = self.removeEventSelector.currentText()
+        return self.currentSelection
 
 
 class CalenWidget(QCalendarWidget):
@@ -187,7 +213,6 @@ class CalenWidget(QCalendarWidget):
 
     def onClickedDate(self, date):
         self.selectedDay = date.toString("dd-MM-yyyy")
-        # TODO: passthrough the selected day to events.fetch
         print("date:", self.selectedDay)
 
         # grabbing today's events and passing into day widget
@@ -225,14 +250,14 @@ class CalenWindow(QMainWindow):
 
         # Initalising events then adding calendar
         self.events = Events()
+        print("ALL EVENTS: ", self.events.fetchAllEvents())
         self.calendar = CalenWidget()
         self.setCentralWidget(self.calendar)
 
         self.removeEventButton = QPushButton("Remove Event")
         # TODO: implement removing events
         self.toolbar.addWidget(self.removeEventButton)
-        self.removeEventButton.clicked.connect(
-            self.openRemoveEventGUI(self.events.fetchAllEvents))
+        self.removeEventButton.clicked.connect(self.openRemoveEventGUI)
 
     def openAddEventGUI(self):
         self.addEventWindow = AddEventGUI()
@@ -255,10 +280,12 @@ class CalenWindow(QMainWindow):
             conn.commit()
             conn.close()
         else:
-            QMessageBox.information(self, "Event Not Saved")
+            pass
 
-    def openRemoveEventGUI(self, currAppointments):
-        self.removeEventGUI = removeEventGUI(currAppointments)
+    def openRemoveEventGUI(self):
+        self.removeEventWindow = removeEventGUI()
+        if self.removeEventWindow.exec():
+            return self.removeEventWindow.getToBeRemovedAppointment()
 
 
 if __name__ == "__main__":
